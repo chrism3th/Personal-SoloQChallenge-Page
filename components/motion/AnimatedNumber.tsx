@@ -26,18 +26,20 @@ export function AnimatedNumber({
   const ref = useRef<HTMLSpanElement>(null);
   const inView = useInView(ref, { once: true, margin: "-10%" });
   const reduceMotion = useReducedMotion();
-  const motionValue = useMotionValue(0);
-  const [animatedValue, setAnimatedValue] = useState(0);
+  const motionValue = useMotionValue(value);
+  // Arranca en el valor final, no en 0: en servidor no hay matchMedia, así que
+  // useReducedMotion() no coincide entre servidor y cliente, y empezar en 0
+  // producía un error de hidratación. El conteo se dispara después de montar.
+  const [display, setDisplay] = useState(value);
 
   useEffect(() => {
-    // Con movimiento reducido no hay animación que montar: el valor final se
-    // deriva en el render de abajo, sin pasar por estado.
     if (reduceMotion || !inView) return;
 
     // El setState vive dentro del callback del subscribe (no en el cuerpo del
     // efecto), que es lo que espera React para sincronizar con un sistema
     // externo como el motion value.
-    const unsubscribe = motionValue.on("change", setAnimatedValue);
+    const unsubscribe = motionValue.on("change", setDisplay);
+    motionValue.set(0);
     const controls = animate(motionValue, value, { duration, ease: EASE_OUT });
 
     return () => {
@@ -45,8 +47,6 @@ export function AnimatedNumber({
       unsubscribe();
     };
   }, [inView, value, reduceMotion, duration, motionValue]);
-
-  const display = reduceMotion ? value : animatedValue;
 
   return (
     <span ref={ref} className={cn("tabular", className)}>

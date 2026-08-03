@@ -10,7 +10,7 @@
  * columnas dejaba fuera la mitad de la información en móvil.
  */
 export const LADDER_GRID =
-  "lg:grid-cols-[3rem_minmax(11rem,1fr)_5rem_8.5rem_8.5rem_6rem_4.5rem_4rem_5rem_6.5rem_3.5rem]";
+  "lg:grid-cols-[2.5rem_minmax(10rem,1fr)_3rem_8rem_8rem_5.5rem_4rem_3.5rem_5rem_9rem_3.5rem]";
 
 export const LADDER_COLUMNS = [
   "#",

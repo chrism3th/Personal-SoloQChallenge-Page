@@ -204,12 +204,14 @@ export function LadderRow({
             <span className="font-mono text-xs font-semibold tabular">{lpDelta}</span>
           </div>
 
-          {/* --- Estado: partidas jugadas y, si corresponde, en vivo --- */}
-          <div className="flex items-center justify-between gap-3 lg:block">
+          {/* --- Estado: partidas jugadas y, si corresponde, en vivo.
+                 En la grilla se apilan: el indicador en vivo ("Ahri · 14 min")
+                 no entra al lado del contador sin invadir las acciones. --- */}
+          <div className="flex min-w-0 items-center justify-between gap-3 lg:flex-col lg:items-start lg:justify-center lg:gap-0.5">
             <span className="font-mono text-[10px] uppercase tracking-widest text-ink-muted lg:hidden">
               Partidas
             </span>
-            <span className="flex items-center gap-2">
+            <span className="flex min-w-0 items-center gap-2 lg:contents">
               <span className="font-mono text-xs text-ink-muted tabular">{games}j</span>
               {isLive && (
                 <LiveIndicator

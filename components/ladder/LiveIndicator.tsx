@@ -58,7 +58,7 @@ export function LiveIndicator({
   return (
     <span
       className={cn(
-        "inline-flex items-center gap-1.5 font-mono uppercase tracking-widest text-loss",
+        "inline-flex min-w-0 items-center gap-1.5 font-mono uppercase tracking-widest text-loss",
         compact ? "text-[10px]" : "text-xs"
       )}
     >

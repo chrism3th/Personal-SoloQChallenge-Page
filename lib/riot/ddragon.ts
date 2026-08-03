@@ -4,19 +4,38 @@
 let cachedVersion: { version: string; fetchedAt: number } | null = null;
 const VERSION_TTL_MS = 60 * 60 * 1000;
 
+/**
+ * Último recurso si Data Dragon no responde. Los íconos de una versión vieja
+ * siguen sirviéndose, así que como mucho falta el arte de un campeón nuevo.
+ */
+const FALLBACK_VERSION = "15.1.1";
+
 export async function getLatestDdragonVersion(): Promise<string> {
   const now = Date.now();
   if (cachedVersion && now - cachedVersion.fetchedAt < VERSION_TTL_MS) {
     return cachedVersion.version;
   }
 
-  const res = await fetch("https://ddragon.leagueoflegends.com/api/versions.json", {
-    next: { revalidate: 3600 },
-  });
-  const versions = (await res.json()) as string[];
-  const version = versions[0];
-  cachedVersion = { version, fetchedAt: now };
-  return version;
+  // Data Dragon es un CDN de terceros: si se cae, o si el entorno no tiene
+  // salida a internet, esto no puede tumbar la página entera. Antes cualquier
+  // fallo acá se propagaba y devolvía un 500 en todo el ladder.
+  try {
+    const res = await fetch("https://ddragon.leagueoflegends.com/api/versions.json", {
+      next: { revalidate: 3600 },
+    });
+    if (!res.ok) throw new Error(`Data Dragon respondió ${res.status}`);
+
+    const versions = (await res.json()) as string[];
+    const version = versions[0];
+    if (typeof version !== "string") throw new Error("Respuesta de versiones inesperada");
+
+    cachedVersion = { version, fetchedAt: now };
+    return version;
+  } catch {
+    // Se prefiere la última versión conocida aunque esté vencida; recién si
+    // nunca hubo una se cae al valor fijo.
+    return cachedVersion?.version ?? FALLBACK_VERSION;
+  }
 }
 
 /**
@@ -67,21 +86,27 @@ let cachedChampionMap: { version: string; map: Map<number, string> } | null = nu
 async function getChampionIdMap(version: string): Promise<Map<number, string>> {
   if (cachedChampionMap?.version === version) return cachedChampionMap.map;
 
-  const res = await fetch(
-    `https://ddragon.leagueoflegends.com/cdn/${version}/data/en_US/champion.json`,
-    { next: { revalidate: 3600 } }
-  );
-  const json = (await res.json()) as {
-    data: Record<string, { key: string; id: string }>;
-  };
+  try {
+    const res = await fetch(
+      `https://ddragon.leagueoflegends.com/cdn/${version}/data/en_US/champion.json`,
+      { next: { revalidate: 3600 } }
+    );
+    if (!res.ok) throw new Error(`Data Dragon respondió ${res.status}`);
 
-  const map = new Map<number, string>();
-  for (const entry of Object.values(json.data)) {
-    map.set(Number(entry.key), entry.id);
+    const json = (await res.json()) as {
+      data: Record<string, { key: string; id: string }>;
+    };
+
+    const map = new Map<number, string>();
+    for (const entry of Object.values(json.data)) {
+      map.set(Number(entry.key), entry.id);
+    }
+
+    cachedChampionMap = { version, map };
+    return map;
+  } catch {
+    return new Map();
   }
-
-  cachedChampionMap = { version, map };
-  return map;
 }
 
 /** Key interna del campeón (ej. "Ahri") a partir del id numérico de Riot. */
@@ -107,21 +132,29 @@ let cachedSpellMap: { version: string; map: Map<number, string> } | null = null;
 async function getSummonerSpellMap(version: string): Promise<Map<number, string>> {
   if (cachedSpellMap?.version === version) return cachedSpellMap.map;
 
-  const res = await fetch(
-    `https://ddragon.leagueoflegends.com/cdn/${version}/data/en_US/summoner.json`,
-    { next: { revalidate: 3600 } }
-  );
-  const json = (await res.json()) as {
-    data: Record<string, { key: string; image: { full: string } }>;
-  };
+  try {
+    const res = await fetch(
+      `https://ddragon.leagueoflegends.com/cdn/${version}/data/en_US/summoner.json`,
+      { next: { revalidate: 3600 } }
+    );
+    if (!res.ok) throw new Error(`Data Dragon respondió ${res.status}`);
 
-  const map = new Map<number, string>();
-  for (const entry of Object.values(json.data)) {
-    map.set(Number(entry.key), entry.image.full);
+    const json = (await res.json()) as {
+      data: Record<string, { key: string; image: { full: string } }>;
+    };
+
+    const map = new Map<number, string>();
+    for (const entry of Object.values(json.data)) {
+      map.set(Number(entry.key), entry.image.full);
+    }
+
+    cachedSpellMap = { version, map };
+    return map;
+  } catch {
+    // Mapa vacío = los consumidores devuelven null y la UI muestra el hueco
+    // del ícono. No se cachea, para reintentar en la próxima llamada.
+    return new Map();
   }
-
-  cachedSpellMap = { version, map };
-  return map;
 }
 
 export async function summonerSpellIconUrl(
@@ -151,24 +184,30 @@ let cachedRuneMap: { version: string; map: Map<number, string> } | null = null;
 async function getRuneIconMap(version: string): Promise<Map<number, string>> {
   if (cachedRuneMap?.version === version) return cachedRuneMap.map;
 
-  const res = await fetch(
-    `https://ddragon.leagueoflegends.com/cdn/${version}/data/en_US/runesReforged.json`,
-    { next: { revalidate: 3600 } }
-  );
-  const trees = (await res.json()) as RuneTree[];
+  try {
+    const res = await fetch(
+      `https://ddragon.leagueoflegends.com/cdn/${version}/data/en_US/runesReforged.json`,
+      { next: { revalidate: 3600 } }
+    );
+    if (!res.ok) throw new Error(`Data Dragon respondió ${res.status}`);
 
-  const map = new Map<number, string>();
-  for (const tree of trees) {
-    map.set(tree.id, tree.icon);
-    for (const slot of tree.slots) {
-      for (const rune of slot.runes) {
-        map.set(rune.id, rune.icon);
+    const trees = (await res.json()) as RuneTree[];
+
+    const map = new Map<number, string>();
+    for (const tree of trees) {
+      map.set(tree.id, tree.icon);
+      for (const slot of tree.slots) {
+        for (const rune of slot.runes) {
+          map.set(rune.id, rune.icon);
+        }
       }
     }
-  }
 
-  cachedRuneMap = { version, map };
-  return map;
+    cachedRuneMap = { version, map };
+    return map;
+  } catch {
+    return new Map();
+  }
 }
 
 export async function runeIconUrl(version: string, runeId: number | null): Promise<string | null> {

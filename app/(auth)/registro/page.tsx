@@ -63,6 +63,11 @@ export default function RegistroPage() {
     event.preventDefault();
     setFormError(null);
 
+    if (riotCheck.status !== "found") {
+      setFormError("Verifica tu Riot ID antes de continuar.");
+      return;
+    }
+
     setSubmitting(true);
     try {
       const res = await fetch("/api/auth/register", {
@@ -166,7 +171,7 @@ export default function RegistroPage() {
 
           <FieldError>{formError}</FieldError>
 
-          <Button type="submit" disabled={submitting} className="mt-2">
+          <Button type="submit" disabled={submitting || riotCheck.status !== "found"} className="mt-2">
             {submitting ? "Creando cuenta…" : "Crear cuenta"}
           </Button>
         </form>

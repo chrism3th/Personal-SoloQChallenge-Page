@@ -4,9 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "db:link": "pnpm dlx supabase link --project-ref \"$SUPABASE_PROJECT_REF\" --password \"$SUPABASE_DB_PASSWORD\"",
-    "db:push": "pnpm dlx supabase db push --linked --password \"$SUPABASE_DB_PASSWORD\" --yes",
-    "build": "pnpm run db:link && pnpm run db:push && next build",
+    "build": "next build",
     "start": "next start",
     "lint": "eslint",
     "seed": "tsx scripts/seed-fake-data.ts",

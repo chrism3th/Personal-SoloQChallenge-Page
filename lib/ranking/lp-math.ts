@@ -68,6 +68,63 @@ export function rankValue(tier: Tier, division: Division, leaguePoints: number):
   return tierWeight * 10_000 + divisionWeight * 1_000 + leaguePoints;
 }
 
+/** Ancho exacto de un tier en la escala de rankValue() — ver la fórmula abajo. */
+const UNITS_PER_TIER = 10_000;
+
+/** Tier al que pertenece un rankValue, acotado a los extremos de la escala. */
+export function tierFromRankValue(value: number): Tier {
+  const index = Math.floor(value / UNITS_PER_TIER);
+  return TIER_ORDER[Math.max(0, Math.min(TIER_ORDER.length - 1, index))];
+}
+
+const DIVISION_BY_WEIGHT: Exclude<Division, null>[] = ["IV", "III", "II", "I"];
+
+/**
+ * Etiqueta legible de un rankValue (ej. 61_000 -> "Diamond III").
+ *
+ * Sirve para rotular un punto del gráfico sin arrastrar el snapshot original:
+ * la escala es reversible porque cada tier ocupa 10.000 unidades y cada
+ * división 1.000 dentro de ese bloque.
+ */
+export function rankLabelFromValue(value: number): string {
+  const tier = tierFromRankValue(value);
+  if (!hasDivision(tier)) return tier.charAt(0) + tier.slice(1).toLowerCase();
+
+  const divisionWeight = Math.floor((value % UNITS_PER_TIER) / 1_000);
+  const division = DIVISION_BY_WEIGHT[Math.max(0, Math.min(3, divisionWeight))];
+  return formatTierDivision(tier, division);
+}
+
+export type TierBand = { tier: Tier; y1: number; y2: number; color: string };
+
+/**
+ * Franjas horizontales de tier que cubren el rango [min, max] de un gráfico de
+ * progresión, para pintarlas de fondo con `ReferenceArea`.
+ *
+ * Funciona porque rankValue() usa exactamente 10.000 unidades por tier, así
+ * que los límites caen en múltiplos redondos y no hay que inferir nada: la
+ * línea de LP deja de ser una curva abstracta y pasa a leerse como "por qué
+ * tier iba" en cada momento.
+ */
+export function tierBands(min: number, max: number): TierBand[] {
+  const firstIndex = Math.max(0, Math.floor(min / UNITS_PER_TIER));
+  const lastIndex = Math.min(TIER_ORDER.length - 1, Math.floor(max / UNITS_PER_TIER));
+
+  const bands: TierBand[] = [];
+  for (let i = firstIndex; i <= lastIndex; i++) {
+    const tier = TIER_ORDER[i];
+    bands.push({
+      tier,
+      // Se recortan a la ventana visible para que la banda de los extremos no
+      // se dibuje fuera del área del gráfico.
+      y1: Math.max(min, i * UNITS_PER_TIER),
+      y2: Math.min(max, (i + 1) * UNITS_PER_TIER),
+      color: tierGlowVar(tier),
+    });
+  }
+  return bands;
+}
+
 export function formatTierDivision(tier: Tier, division: Division): string {
   const label = tier.charAt(0) + tier.slice(1).toLowerCase();
   return hasDivision(tier) && division ? `${label} ${division}` : label;

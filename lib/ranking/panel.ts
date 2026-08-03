@@ -23,6 +23,9 @@ type DB = Database;
 type SeasonRow = DB["public"]["Tables"]["seasons"]["Row"];
 type ProfileRow = DB["public"]["Tables"]["profiles"]["Row"];
 
+/** Partidas que se muestran en el historial con íconos ya resueltos. */
+const MATCH_HISTORY_SIZE = 50;
+
 export type PanelMatchRow = {
   matchId: string;
   win: boolean;
@@ -35,6 +38,8 @@ export type PanelMatchRow = {
   deaths: number;
   assists: number;
   cs: number;
+  csPerMin: number;
+  visionScore: number | null;
   killParticipation: number | null;
   opponentChampionName: string | null;
   opponentChampionIconUrl: string | null;
@@ -68,10 +73,25 @@ export type PlayerPanelData = {
   streak: Streak;
   bestWinStreak: number;
   totalGames: number;
+  /**
+   * Récord contado sobre las partidas de la temporada. Distinto del
+   * `latestSnapshot.wins/losses`, que es el acumulado de por vida en la cola
+   * que reporta Riot: en una temporada corta los dos números no coinciden y
+   * mezclarlos hacía que el winrate mostrado no cuadrara con el historial.
+   */
+  seasonRecord: { wins: number; losses: number };
   kdaAverage: { kills: number; deaths: number; assists: number; ratio: number } | null;
+  avgCsPerMin: number | null;
+  avgVisionScore: number | null;
   ladderRank: number | null;
   ladderSize: number;
-  peakRank: { tier: Tier; division: Division; leaguePoints: number; label: string } | null;
+  peakRank: {
+    tier: Tier;
+    division: Division;
+    leaguePoints: number;
+    label: string;
+    date: string;
+  } | null;
   chartData: { date: string; value: number; label: string }[];
   matchHistory: PanelMatchRow[];
   championStats: PanelChampionStat[];
@@ -94,9 +114,11 @@ export async function buildPlayerPanelData(
   const snapshots = await getSeasonSnapshots(supabase, profile.id, season);
   // Se trae todo el historial de la temporada (tope generoso, no artificial
   // de "últimas 15") para que racha, roles, KDA promedio y mejor racha sean
-  // reales de la temporada completa — no solo de una muestra reciente. Solo
-  // se resuelven íconos (caro, un fetch por partida) para el subconjunto que
-  // realmente se muestra en el historial.
+  // reales de la temporada completa — no solo de una muestra reciente. Los
+  // íconos se resuelven solo para el subconjunto que se muestra: no es un
+  // fetch por partida (summonerSpellIconUrl/runeIconUrl van contra mapas
+  // cacheados por versión), pero sí un mapeo por partida que no vale la pena
+  // hacer sobre partidas que nadie va a ver.
   const [championStatsRaw, matchHistoryFullRaw, ladderEntries] = await Promise.all([
     getChampionStats(supabase, profile.id, season),
     getMatchHistory(supabase, profile.id, season, 1000),
@@ -127,11 +149,30 @@ export async function buildPlayerPanelData(
     ...row,
     matches: Array.isArray(row.matches) ? (row.matches[0] ?? null) : row.matches,
   }));
-  const normalizedMatches = normalizedMatchesFull.slice(0, 20);
+  const normalizedMatches = normalizedMatchesFull.slice(0, MATCH_HISTORY_SIZE);
 
   const streak = computeStreak(normalizedMatchesFull.map((m) => ({ win: m.win })));
   const bestWinStreak = computeBestWinStreak(normalizedMatchesFull.map((m) => ({ win: m.win })));
   const totalGames = normalizedMatchesFull.length;
+
+  const seasonWins = normalizedMatchesFull.filter((m) => m.win).length;
+  const seasonRecord = { wins: seasonWins, losses: totalGames - seasonWins };
+
+  // CS/min se promedia partida a partida (no CS total sobre minutos totales):
+  // así una partida larga no pesa más que una corta al describir el ritmo de
+  // farmeo habitual del jugador.
+  const timedMatches = normalizedMatchesFull.filter((m) => (m.matches?.game_duration ?? 0) > 0);
+  const avgCsPerMin =
+    timedMatches.length > 0
+      ? timedMatches.reduce((sum, m) => sum + m.cs / (m.matches!.game_duration / 60), 0) /
+        timedMatches.length
+      : null;
+
+  const visionMatches = normalizedMatchesFull.filter((m) => m.vision_score != null);
+  const avgVisionScore =
+    visionMatches.length > 0
+      ? visionMatches.reduce((sum, m) => sum + (m.vision_score ?? 0), 0) / visionMatches.length
+      : null;
   const kdaAverage =
     totalGames > 0
       ? (() => {
@@ -200,6 +241,11 @@ export async function buildPlayerPanelData(
         deaths: m.deaths,
         assists: m.assists,
         cs: m.cs,
+        csPerMin:
+          m.matches && m.matches.game_duration > 0
+            ? m.cs / (m.matches.game_duration / 60)
+            : 0,
+        visionScore: m.vision_score,
         killParticipation: m.kill_participation,
         opponentChampionName: m.opponent_champion_name,
         opponentChampionIconUrl: m.opponent_champion_name
@@ -246,7 +292,10 @@ export async function buildPlayerPanelData(
     streak,
     bestWinStreak,
     totalGames,
+    seasonRecord,
     kdaAverage,
+    avgCsPerMin,
+    avgVisionScore,
     ladderRank: ladderIndex >= 0 ? ladderIndex + 1 : null,
     ladderSize: ladderEntries.length,
     peakRank: peakSnapshot
@@ -255,6 +304,7 @@ export async function buildPlayerPanelData(
           division: peakSnapshot.division,
           leaguePoints: peakSnapshot.league_points,
           label: `${formatTierDivision(peakSnapshot.tier, peakSnapshot.division)} · ${peakSnapshot.league_points} LP`,
+          date: peakSnapshot.taken_at,
         }
       : null,
     chartData,

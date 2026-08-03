@@ -1,6 +1,7 @@
 import "server-only";
 import { createAdminClient } from "@/lib/supabase/admin";
 import type { Tier, Division } from "@/lib/supabase/types";
+import type { Streak } from "./streak";
 import { getCurrentSeason, getLadder } from "./season-scope";
 
 export type PodiumEntry = {
@@ -11,6 +12,18 @@ export type PodiumEntry = {
   tier: Tier | null;
   division: Division;
   leaguePoints: number | null;
+  /**
+   * Todo lo de abajo ya venía en el LadderEntry que produce getLadder y se
+   * descartaba al mapear: el podio mostraba solo nombre y elo teniendo a mano
+   * récord, forma y campeón principal.
+   */
+  wins: number;
+  losses: number;
+  games: number;
+  recentForm: boolean[];
+  streak: Streak;
+  preferredRole: string | null;
+  topChampion: { championName: string; games: number; wins: number } | null;
 };
 
 export type PublicPodium = {
@@ -37,6 +50,13 @@ export async function getPublicPodium(limit = 3): Promise<PublicPodium> {
     tier: entry.snapshot?.tier ?? null,
     division: entry.snapshot?.division ?? null,
     leaguePoints: entry.snapshot?.league_points ?? null,
+    wins: entry.snapshot?.wins ?? 0,
+    losses: entry.snapshot?.losses ?? 0,
+    games: entry.games,
+    recentForm: entry.recentForm,
+    streak: entry.streak,
+    preferredRole: entry.preferredRole,
+    topChampion: entry.topChampions[0] ?? null,
   }));
 
   return { seasonName: season?.name ?? null, entries };

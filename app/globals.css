@@ -9,6 +9,7 @@
 @theme {
   --color-obsidian-950: #05060b;
   --color-obsidian-900: #0b0e18;
+  --color-obsidian-850: #0f1320;
   --color-obsidian-800: #121627;
   --color-obsidian-700: #1c2236;
 
@@ -36,6 +37,22 @@
   --font-display: var(--font-chakra-petch), sans-serif;
   --font-mono: var(--font-jetbrains-mono), monospace;
   --font-body: var(--font-manrope), sans-serif;
+
+  /* Escala de radios: paneles > tarjetas > chips. Antes cada componente
+     elegía su propio `rounded-*` a ojo y no había jerarquía. */
+  --radius-panel: 1.25rem;
+  --radius-card: 0.875rem;
+  --radius-chip: 0.5rem;
+
+  /* Movimiento. Espejado en lib/motion/tokens.ts para que la capa CSS y la
+     capa de `motion` se muevan con exactamente la misma curva y duración. */
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --dur-fast: 120ms;
+  --dur-base: 220ms;
+  --dur-slow: 400ms;
+
+  --shadow-panel: 0 1px 2px rgb(0 0 0 / 0.4), 0 8px 24px -12px rgb(0 0 0 / 0.6);
+  --shadow-raised: 0 2px 4px rgb(0 0 0 / 0.5), 0 16px 40px -16px rgb(0 0 0 / 0.7);
 }
 
 body {
@@ -68,8 +85,12 @@ body::before {
   position: relative;
   background: color-mix(in oklab, var(--color-obsidian-900) 90%, transparent);
   border: 1px solid var(--color-obsidian-700);
-  border-radius: 1.25rem;
+  border-radius: var(--radius-panel);
   backdrop-filter: blur(16px);
+  /* Sin esta transición el halo de `.panel--glow` saltaba de golpe en hover. */
+  transition:
+    border-color var(--dur-base) var(--ease-out),
+    box-shadow var(--dur-base) var(--ease-out);
 }
 
 .panel--glow {
@@ -80,6 +101,49 @@ body::before {
 .panel--glow:hover {
   border-color: color-mix(in oklab, var(--glow-color, var(--color-accent)) 55%, var(--color-obsidian-700));
   box-shadow: 0 0 26px -6px color-mix(in oklab, var(--glow-color, var(--color-accent)) 75%, transparent);
+}
+
+/* Riel de tier: barra vertical del color de rango pegada al borde izquierdo
+   de cada fila de ladder / partida. Codifica el tier de un vistazo sin
+   gastar una columna. Antes `.ladder-row` se aplicaba en LadderRow pero solo
+   existía dentro del bloque prefers-reduced-motion — era una clase muerta. */
+.tier-rail,
+.ladder-row {
+  position: relative;
+  overflow: hidden;
+}
+
+.tier-rail::before,
+.ladder-row::before {
+  content: "";
+  position: absolute;
+  inset-block: 0;
+  inset-inline-start: 0;
+  width: 3px;
+  background: var(--glow-color, var(--color-accent));
+  opacity: 0.75;
+  transition: opacity var(--dur-base) var(--ease-out);
+}
+
+.tier-rail:hover::before,
+.ladder-row:hover::before {
+  opacity: 1;
+}
+
+/* Cifras en columna: sin esto las estadísticas bailan de ancho al cambiar. */
+.tabular {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Máscara reutilizable para los fondos de splash art: el arte se desvanece
+   hacia la izquierda y hacia abajo para que el texto encima siga legible. */
+.splash-veil {
+  -webkit-mask-image: linear-gradient(to left, black, transparent 78%),
+    linear-gradient(to top, transparent, black 45%);
+  -webkit-mask-composite: source-in;
+  mask-image: linear-gradient(to left, black, transparent 78%),
+    linear-gradient(to top, transparent, black 45%);
+  mask-composite: intersect;
 }
 
 /* Indicador "EN VIVO" */

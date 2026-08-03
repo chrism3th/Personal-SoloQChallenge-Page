@@ -1,8 +1,22 @@
+import { Users } from "lucide-react";
+import { Panel } from "@/components/shared/Panel";
 import type { LadderEntry } from "@/lib/ranking/season-scope";
-import { getLatestDdragonVersion } from "@/lib/riot/ddragon";
-import { LadderHeader } from "./LadderHeader";
-import { LadderRow } from "./LadderRow";
+import {
+  championIconUrl,
+  getChampionNameById,
+  getLatestDdragonVersion,
+} from "@/lib/riot/ddragon";
+import { LadderList } from "./LadderList";
+import type { LadderRowLive } from "./LadderRow";
 
+/**
+ * Envoltura de servidor del ladder: resuelve lo que necesita un fetch (la
+ * versión de Data Dragon y el nombre del campeón de cada partida en curso) y
+ * le pasa el resultado ya plano a la lista interactiva.
+ *
+ * El mapeo id -> nombre de campeón es asíncrono, así que no puede vivir dentro
+ * de LadderRow, que es client component.
+ */
 export async function LadderTable({
   entries,
   seasonId,
@@ -12,30 +26,42 @@ export async function LadderTable({
 }) {
   if (entries.length === 0) {
     return (
-      <p className="font-body text-ink-muted">
-        Todavía no hay jugadores con datos en este periodo.
-      </p>
+      <Panel className="flex flex-col items-center gap-2 px-6 py-12 text-center">
+        <Users size={28} className="text-ink-muted" aria-hidden />
+        <p className="font-display text-xl uppercase tracking-wide text-ink">Ladder vacío</p>
+        <p className="max-w-sm font-body text-sm text-ink-muted">
+          Todavía no hay jugadores con datos en este periodo. El ladder se llena solo en cuanto el
+          cron registre la primera partida ranked.
+        </p>
+      </Panel>
     );
   }
 
   const version = await getLatestDdragonVersion();
 
+  const liveEntries = await Promise.all(
+    entries
+      .filter((entry) => entry.isLive && entry.liveChampionId != null)
+      .map(async (entry) => {
+        const championName = await getChampionNameById(version, entry.liveChampionId);
+        return [
+          entry.profile.id,
+          {
+            championName,
+            championIconUrl: championName ? championIconUrl(version, championName) : null,
+          },
+        ] as const;
+      })
+  );
+
+  const liveByProfileId: Record<string, LadderRowLive> = Object.fromEntries(liveEntries);
+
   return (
-    <div className="overflow-x-auto">
-      <div className="min-w-fit">
-        <LadderHeader />
-        <ol className="flex flex-col gap-2">
-          {entries.map((entry, index) => (
-            <LadderRow
-              key={entry.profile.id}
-              entry={entry}
-              rank={index + 1}
-              version={version}
-              seasonId={seasonId}
-            />
-          ))}
-        </ol>
-      </div>
-    </div>
+    <LadderList
+      entries={entries}
+      version={version}
+      seasonId={seasonId}
+      liveByProfileId={liveByProfileId}
+    />
   );
 }

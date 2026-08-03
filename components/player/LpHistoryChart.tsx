@@ -17,6 +17,7 @@ import { Panel } from "@/components/shared/Panel";
 import { Badge } from "@/components/ui/Badge";
 import {
   formatTierDivision,
+  rankLabelFromValue,
   tierBands,
   tierFromRankValue,
   tierGlowVar,
@@ -58,7 +59,19 @@ export function LpHistoryChart({
 
   const bands = tierBands(min, max);
   const peak = data.reduce((best, point) => (point.value > best.value ? point : best), data[0]);
-  const netDelta = data[data.length - 1].value - data[0].value;
+
+  // El movimiento se muestra como el cambio de rango de punta a punta
+  // ("Platinum II → Diamond III"). Antes se mostraba la resta cruda de
+  // rankValue ("+19073"), que es un número interno de la escala de
+  // ordenamiento y no significa nada para quien lo lee — encima no es lineal
+  // entre tiers, así que tampoco se puede leer como "divisiones".
+  const first = data[0];
+  const last = data[data.length - 1];
+  const netDelta = last.value - first.value;
+  const rankChange =
+    netDelta === 0
+      ? "Sin cambios"
+      : `${rankLabelFromValue(first.value)} → ${rankLabelFromValue(last.value)}`;
 
   return (
     <Panel className="p-6">
@@ -67,10 +80,11 @@ export function LpHistoryChart({
           Progresión de rango
         </p>
         <div className="flex items-center gap-2">
-          <Badge tone={netDelta >= 0 ? "win" : "loss"} size="sm">
-            <TrendingUp size={10} className={netDelta >= 0 ? "" : "rotate-180"} aria-hidden />
-            {netDelta >= 0 ? "+" : ""}
-            {netDelta} en la temporada
+          <Badge tone={netDelta > 0 ? "win" : netDelta < 0 ? "loss" : "neutral"} size="sm">
+            {netDelta !== 0 && (
+              <TrendingUp size={10} className={netDelta > 0 ? "" : "rotate-180"} aria-hidden />
+            )}
+            {rankChange}
           </Badge>
           <span className="font-mono text-[11px] text-ink-muted tabular">
             {data.length} registros
@@ -166,8 +180,11 @@ export function LpHistoryChart({
             strokeWidth={2}
             ifOverflow="visible"
             label={{
-              value: `Pico · ${peak.label}`,
-              position: "top",
+              value: `Pico · ${rankLabelFromValue(peak.value)}`,
+              // Si el pico cae en la última fecha (lo habitual cuando alguien
+              // viene subiendo), una etiqueta centrada se corta contra el
+              // borde derecho: en ese caso se ancla a la izquierda del punto.
+              position: peak === last ? "insideTopRight" : "top",
               fill: "var(--color-tier-challenger)",
               fontSize: 10,
             }}

@@ -29,6 +29,17 @@ const PLACE_STYLES = {
   3: { card: "sm:pt-4 sm:pb-8", art: "h-28 sm:h-36", number: "text-5xl sm:text-6xl" },
 } as const;
 
+/**
+ * El orden 2-1-3 solo se sostiene con las tarjetas lado a lado. Apiladas en
+ * móvil dejaba al segundo puesto arriba del primero, así que ahí se reordena
+ * a 1-2-3 con `order` y se vuelve al orden del DOM desde `sm`.
+ */
+const PLACE_ORDER = {
+  1: "order-1 sm:order-none",
+  2: "order-2 sm:order-none",
+  3: "order-3 sm:order-none",
+} as const;
+
 export function PodiumHero({ entries }: { entries: PodiumEntry[] }) {
   const top3 = entries.slice(0, 3);
 
@@ -63,7 +74,7 @@ function PodiumCard({ entry, place }: { entry: PodiumEntry; place: number }) {
   const hasRecord = entry.wins + entry.losses > 0;
 
   return (
-    <StaggerItem className="sm:w-56">
+    <StaggerItem className={cn("sm:w-56", PLACE_ORDER[place as 1 | 2 | 3])}>
       <Link href={`/jugador/${entry.slug}`} className="focus-ring block rounded-panel">
         <Panel
           glowColor={glow}

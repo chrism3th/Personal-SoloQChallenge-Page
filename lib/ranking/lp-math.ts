@@ -77,6 +77,24 @@ export function tierFromRankValue(value: number): Tier {
   return TIER_ORDER[Math.max(0, Math.min(TIER_ORDER.length - 1, index))];
 }
 
+const DIVISION_BY_WEIGHT: Exclude<Division, null>[] = ["IV", "III", "II", "I"];
+
+/**
+ * Etiqueta legible de un rankValue (ej. 61_000 -> "Diamond III").
+ *
+ * Sirve para rotular un punto del gráfico sin arrastrar el snapshot original:
+ * la escala es reversible porque cada tier ocupa 10.000 unidades y cada
+ * división 1.000 dentro de ese bloque.
+ */
+export function rankLabelFromValue(value: number): string {
+  const tier = tierFromRankValue(value);
+  if (!hasDivision(tier)) return tier.charAt(0) + tier.slice(1).toLowerCase();
+
+  const divisionWeight = Math.floor((value % UNITS_PER_TIER) / 1_000);
+  const division = DIVISION_BY_WEIGHT[Math.max(0, Math.min(3, divisionWeight))];
+  return formatTierDivision(tier, division);
+}
+
 export type TierBand = { tier: Tier; y1: number; y2: number; color: string };
 
 /**

@@ -1,0 +1,114 @@
+@import "tailwindcss";
+
+/* ---------------------------------------------------------------------
+   SoloQ Arena — tema "Neo Rank": paneles de vidrio redondeados con halo,
+   fondo casi negro con tinte azulado, acento violeta eléctrico + cian de
+   energía. Cada jugador "brilla" con el color real de su tier de LoL en
+   vez de un dorado genérico — el halo de color es la identidad visual.
+--------------------------------------------------------------------- */
+@theme {
+  --color-obsidian-950: #05060b;
+  --color-obsidian-900: #0b0e18;
+  --color-obsidian-800: #121627;
+  --color-obsidian-700: #1c2236;
+
+  --color-accent: #7b6cff;
+  --color-accent-bright: #a79bff;
+  --color-cyan: #3fe0ff;
+
+  --color-ink: #eaf0ff;
+  --color-ink-muted: #7c86a3;
+
+  --color-win: #34f5a0;
+  --color-loss: #ff4d7d;
+
+  --color-tier-iron: #5b5a56;
+  --color-tier-bronze: #8c5a3c;
+  --color-tier-silver: #9fa8b5;
+  --color-tier-gold: #d4af37;
+  --color-tier-platinum: #3fc1b0;
+  --color-tier-emerald: #2fae6a;
+  --color-tier-diamond: #5a8dee;
+  --color-tier-master: #b06fd1;
+  --color-tier-grandmaster: #e0525f;
+  --color-tier-challenger: #f4d160;
+
+  --font-display: var(--font-chakra-petch), sans-serif;
+  --font-mono: var(--font-jetbrains-mono), monospace;
+  --font-body: var(--font-manrope), sans-serif;
+}
+
+body {
+  background: var(--color-obsidian-950);
+  color: var(--color-ink);
+  position: relative;
+}
+
+/* Atmósfera ambiente: dos halos difusos y estáticos (violeta + cian) fijos
+   detrás de todo el contenido — sutil, no compite con la UI, refuerza el
+   tono "neo" sin animar nada. */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background:
+    radial-gradient(60rem 40rem at 15% -10%, color-mix(in oklab, var(--color-accent) 16%, transparent), transparent),
+    radial-gradient(50rem 36rem at 100% 10%, color-mix(in oklab, var(--color-cyan) 10%, transparent), transparent);
+}
+
+/* ---------------------------------------------------------------------
+   Motivo de firma: paneles de vidrio esmerilado, esquinas redondeadas,
+   halo de color opcional (--glow-color) — reemplaza el corte diagonal +
+   dorado hextech del tema anterior. El halo, cuando se usa, viene del
+   color de tier del jugador: "tu rango es tu propio brillo".
+--------------------------------------------------------------------- */
+.panel {
+  position: relative;
+  background: color-mix(in oklab, var(--color-obsidian-900) 90%, transparent);
+  border: 1px solid var(--color-obsidian-700);
+  border-radius: 1.25rem;
+  backdrop-filter: blur(16px);
+}
+
+.panel--glow {
+  border-color: color-mix(in oklab, var(--glow-color, var(--color-accent)) 32%, var(--color-obsidian-700));
+  box-shadow: 0 0 16px -8px color-mix(in oklab, var(--glow-color, var(--color-accent)) 55%, transparent);
+}
+
+.panel--glow:hover {
+  border-color: color-mix(in oklab, var(--glow-color, var(--color-accent)) 55%, var(--color-obsidian-700));
+  box-shadow: 0 0 26px -6px color-mix(in oklab, var(--glow-color, var(--color-accent)) 75%, transparent);
+}
+
+/* Indicador "EN VIVO" */
+.live-pulse {
+  animation: live-pulse 1.6s ease-in-out infinite;
+}
+
+@keyframes live-pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.45;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .live-pulse {
+    animation: none;
+  }
+  .panel,
+  .ladder-row {
+    transition: none !important;
+  }
+}
+
+.focus-ring:focus-visible {
+  outline: 2px solid var(--color-accent-bright);
+  outline-offset: 2px;
+  border-radius: 0.5rem;
+}

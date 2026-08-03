@@ -27,31 +27,30 @@ export function AnimatedNumber({
   const inView = useInView(ref, { once: true, margin: "-10%" });
   const reduceMotion = useReducedMotion();
   const motionValue = useMotionValue(0);
-  const [display, setDisplay] = useState(() => format(reduceMotion ? value : 0));
+  const [animatedValue, setAnimatedValue] = useState(0);
 
   useEffect(() => {
-    // Con movimiento reducido no se cuenta: se muestra el valor final directo.
-    if (reduceMotion) {
-      setDisplay(format(value));
-      return;
-    }
-    if (!inView) return;
+    // Con movimiento reducido no hay animación que montar: el valor final se
+    // deriva en el render de abajo, sin pasar por estado.
+    if (reduceMotion || !inView) return;
 
-    const unsubscribe = motionValue.on("change", (latest) => setDisplay(format(latest)));
+    // El setState vive dentro del callback del subscribe (no en el cuerpo del
+    // efecto), que es lo que espera React para sincronizar con un sistema
+    // externo como el motion value.
+    const unsubscribe = motionValue.on("change", setAnimatedValue);
     const controls = animate(motionValue, value, { duration, ease: EASE_OUT });
 
     return () => {
       controls.stop();
       unsubscribe();
     };
-    // `format` se re-crea en cada render del padre si viene inline; se omite a
-    // propósito para no reiniciar el conteo en cada render.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [inView, value, reduceMotion, duration, motionValue]);
+
+  const display = reduceMotion ? value : animatedValue;
 
   return (
     <span ref={ref} className={cn("tabular", className)}>
-      {display}
+      {format(display)}
     </span>
   );
 }

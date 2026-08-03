@@ -1,8 +1,18 @@
-/** Encabezado de columnas del ladder — mismo grid-template que LadderRow, oculto en mobile igual que el resto de las columnas densas. */
+import { LADDER_GRID } from "./grid";
+import { cn } from "@/lib/utils/cn";
+
+/**
+ * Encabezado de columnas del ladder. Solo existe desde `lg`, que es donde la
+ * fila usa la grilla; por debajo cada fila refluye a una tarjeta apilada con
+ * sus propias etiquetas, así que un encabezado de columnas no aplicaría.
+ */
 export function LadderHeader() {
   return (
     <div
-      className="hidden grid-cols-[3rem_1fr_6rem_9rem_9rem_auto] items-center gap-2 px-4 pb-2 font-mono text-[11px] uppercase tracking-widest text-ink-muted sm:grid sm:gap-4 sm:pr-10 lg:grid-cols-[3rem_minmax(12rem,1fr)_6rem_9rem_9rem_6.5rem_5rem_4.5rem_6rem_4rem]"
+      className={cn(
+        "hidden items-center gap-3 px-5 pb-2 font-mono text-[11px] uppercase tracking-widest text-ink-muted lg:grid",
+        LADDER_GRID
+      )}
       aria-hidden
     >
       <span>#</span>
@@ -10,10 +20,11 @@ export function LadderHeader() {
       <span>Rol</span>
       <span>Elo</span>
       <span>V/D</span>
-      <span className="hidden lg:block">Campeones</span>
-      <span className="hidden lg:block">Racha</span>
-      <span className="hidden text-right lg:block">±LP</span>
-      <span className="hidden lg:block">Estado</span>
+      <span>Campeones</span>
+      <span>Forma</span>
+      <span>Racha</span>
+      <span className="text-right">±LP</span>
+      <span>Estado</span>
       <span />
     </div>
   );

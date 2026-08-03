@@ -112,12 +112,17 @@ crear invitaciones, ni auto-otorgarse permisos de admin, y que el cron
 
 1. Crear un proyecto en [supabase.com](https://supabase.com), correr las
    migraciones (`supabase db push` o pegarlas en el SQL editor).
-2. Crear el primer usuario admin registrándote normalmente en
-   `/registro` (vas a necesitar un código de invitación — insertá uno a mano
-   en la tabla `invites` desde el SQL editor la primera vez), y después
-   marcar `profiles.is_admin = true` para tu propio usuario a mano.
-3. Deployar en Vercel, configurando las env vars de `.env.local.example`
-   más `CRON_SECRET`. `vercel.json` ya define los dos Cron Jobs.
+2. Deployar en Vercel, configurando las env vars de `.env.local.example`
+   (Supabase + `CRON_SECRET` + `ADMIN_EMAIL`). `vercel.json` ya define los
+   dos Cron Jobs — ojo, corren cada 3 y 12 minutos, lo cual excede el límite
+   de cron del plan gratuito de Vercel (solo permite 1 ejecución/día); hace
+   falta plan Pro o superior para que el polling funcione a esa frecuencia.
+3. Crear el primer usuario admin registrándote en `/registro` con el email
+   que pusiste en `ADMIN_EMAIL` — no hace falta código de invitación para
+   ese primer registro, y queda admin automáticamente. (Si no configuraste
+   `ADMIN_EMAIL`, la alternativa es insertar un código a mano en la tabla
+   `invites` desde el SQL editor y marcar `profiles.is_admin = true` a
+   mano después de registrarte.)
 4. Entrar a `/admin/api-key` y pegar tu Riot API key.
 5. Crear una temporada en `/admin/temporadas` y marcar ahí mismo qué
    jugadores participan — el ladder de una temporada solo muestra su

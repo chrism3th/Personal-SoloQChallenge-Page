@@ -101,15 +101,16 @@ export default function RegistroPage() {
           Unirse a la Arena
         </h1>
         <p className="mt-1 font-body text-sm text-ink-muted">
-          Necesitas un código de invitación de un miembro del grupo.
+          Necesitas un código de invitación de un miembro del grupo — salvo
+          que tu email sea el admin configurado para el primer arranque del
+          sitio, en cuyo caso podés dejarlo vacío.
         </p>
 
         <form onSubmit={handleSubmit} className="mt-6 flex flex-col gap-4">
           <div className="flex flex-col gap-1.5">
-            <Label htmlFor="inviteCode">Código de invitación</Label>
+            <Label htmlFor="inviteCode">Código de invitación (opcional para el admin de arranque)</Label>
             <Input
               id="inviteCode"
-              required
               value={inviteCode}
               onChange={(e) => setInviteCode(e.target.value)}
               placeholder="XXXXXXXX"

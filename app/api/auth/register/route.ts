@@ -15,6 +15,10 @@ const BodySchema = z.object({
   tagLine: z.string().trim().min(1).max(10),
 });
 
+function buildProvisionalPuuid(gameName: string, tagLine: string): string {
+  return `pending:${gameName.trim().toLowerCase()}#${tagLine.trim().toLowerCase()}`;
+}
+
 export async function POST(request: Request) {
   const json = await request.json().catch(() => null);
   const parsed = BodySchema.safeParse(json);
@@ -70,29 +74,51 @@ export async function POST(request: Request) {
     }
   }
 
-  // 2. Resolver el Riot ID en el servidor (no confiar en un puuid que
-  //    venga del cliente).
-  let account;
-  try {
-    account = await getAccountByRiotId(gameName, tagLine);
-  } catch (err) {
-    if (err instanceof RiotApiError && err.status === 404) {
+  // 2. Si aún no hay Riot API key configurada, permitimos registro sin
+  //    validar contra Riot y usamos un puuid provisional único.
+  const { data: appSettings } = await supabase
+    .from("app_settings")
+    .select("riot_api_key")
+    .eq("id", true)
+    .maybeSingle();
+
+  const riotApiKey = appSettings?.riot_api_key?.trim();
+  const hasRiotApiKey = !!riotApiKey && riotApiKey !== "PENDING_SET_IN_ADMIN_PANEL";
+
+  let account:
+    | {
+        puuid: string;
+        gameName?: string;
+        tagLine?: string;
+      }
+    | undefined;
+
+  if (hasRiotApiKey) {
+    try {
+      account = await getAccountByRiotId(gameName, tagLine);
+    } catch (err) {
+      if (err instanceof RiotApiError && err.status === 404) {
+        return NextResponse.json(
+          { error: "No encontramos ese Riot ID en LAS. Verifica el nombre y el tag." },
+          { status: 404 }
+        );
+      }
+      console.error("register: error resolviendo Riot ID", err);
       return NextResponse.json(
-        { error: "No encontramos ese Riot ID en LAS. Verifica el nombre y el tag." },
-        { status: 404 }
+        { error: "No se pudo verificar el Riot ID. Intenta de nuevo en unos segundos." },
+        { status: 502 }
       );
     }
-    console.error("register: error resolviendo Riot ID", err);
-    return NextResponse.json(
-      { error: "No se pudo verificar el Riot ID. Intenta de nuevo en unos segundos." },
-      { status: 502 }
-    );
   }
+
+  const profilePuuid = account?.puuid ?? buildProvisionalPuuid(gameName, tagLine);
+  const profileGameName = account?.gameName ?? gameName;
+  const profileTagLine = account?.tagLine ?? tagLine;
 
   const { data: existingProfile } = await supabase
     .from("profiles")
     .select("id")
-    .eq("riot_puuid", account.puuid)
+    .eq("riot_puuid", profilePuuid)
     .maybeSingle();
 
   if (existingProfile) {
@@ -128,16 +154,16 @@ export async function POST(request: Request) {
   // 4. Insertar el profile con slug único.
   const { data: existingSlugs } = await supabase.from("profiles").select("slug");
   const slugSet = new Set((existingSlugs ?? []).map((row) => row.slug));
-  const baseSlug = riotIdToSlug(account.gameName ?? gameName, account.tagLine ?? tagLine);
+  const baseSlug = riotIdToSlug(profileGameName, profileTagLine);
   const slug = dedupeSlug(baseSlug, slugSet);
 
   const { data: profile, error: profileError } = await supabase
     .from("profiles")
     .insert({
       id: userId,
-      riot_puuid: account.puuid,
-      riot_game_name: account.gameName ?? gameName,
-      riot_tag_line: account.tagLine ?? tagLine,
+      riot_puuid: profilePuuid,
+      riot_game_name: profileGameName,
+      riot_tag_line: profileTagLine,
       slug,
       is_admin: isBootstrapAdmin,
     })
@@ -172,11 +198,12 @@ export async function POST(request: Request) {
     }
   }
 
-  // 6. Poll inicial best-effort: si la Riot API key aún no está lista o
-  // falla, el usuario simplemente aparece vacío hasta el próximo cron.
-  pollProfileMatches(supabase, profile).catch((err) => {
-    console.error("register: poll inicial falló (no bloqueante)", err);
-  });
+  // 6. Poll inicial best-effort solo cuando ya existe Riot API key válida.
+  if (hasRiotApiKey) {
+    pollProfileMatches(supabase, profile).catch((err) => {
+      console.error("register: poll inicial falló (no bloqueante)", err);
+    });
+  }
 
   return NextResponse.json({ ok: true, slug: profile.slug });
 }

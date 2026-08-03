@@ -31,8 +31,67 @@ export function championIconUrl(version: string, championName: string): string {
   return `https://ddragon.leagueoflegends.com/cdn/${version}/img/champion/${championName}.png`;
 }
 
+/**
+ * Splash art completo del campeón (1215x717). A diferencia de los íconos, las
+ * imágenes de splash y loading NO van versionadas: viven en /cdn/img/ directo.
+ * `_0` es la skin base, la única garantizada para todos los campeones.
+ *
+ * Se usa como textura ambiente detrás de paneles (con `.splash-veil`), nunca
+ * como imagen de contenido — de ahí que no haga falta resolver la skin real.
+ */
+export function championSplashUrl(championName: string): string {
+  return `https://ddragon.leagueoflegends.com/cdn/img/champion/splash/${championName}_0.jpg`;
+}
+
+/** Retrato vertical (308x560), útil para tarjetas angostas como las del podio. */
+export function championLoadingUrl(championName: string): string {
+  return `https://ddragon.leagueoflegends.com/cdn/img/champion/loading/${championName}_0.jpg`;
+}
+
 export function profileIconUrl(version: string, profileIconId: number): string {
   return `https://ddragon.leagueoflegends.com/cdn/${version}/img/profileicon/${profileIconId}.png`;
+}
+
+// ---------------------------------------------------------------------
+// Campeones por id numérico: champion.json está indexado por key interna
+// ("Ahri"), con el id numérico dentro de cada entrada como string. Igual que
+// con los hechizos de invocador, hay que invertir el mapeo una vez y
+// cachearlo por versión.
+//
+// Lo necesita live_status.champion_id, que guarda el id numérico que devuelve
+// el endpoint de spectator y hasta ahora no se podía traducir a nada
+// mostrable.
+// ---------------------------------------------------------------------
+let cachedChampionMap: { version: string; map: Map<number, string> } | null = null;
+
+async function getChampionIdMap(version: string): Promise<Map<number, string>> {
+  if (cachedChampionMap?.version === version) return cachedChampionMap.map;
+
+  const res = await fetch(
+    `https://ddragon.leagueoflegends.com/cdn/${version}/data/en_US/champion.json`,
+    { next: { revalidate: 3600 } }
+  );
+  const json = (await res.json()) as {
+    data: Record<string, { key: string; id: string }>;
+  };
+
+  const map = new Map<number, string>();
+  for (const entry of Object.values(json.data)) {
+    map.set(Number(entry.key), entry.id);
+  }
+
+  cachedChampionMap = { version, map };
+  return map;
+}
+
+/** Key interna del campeón (ej. "Ahri") a partir del id numérico de Riot. */
+export async function getChampionNameById(
+  version: string,
+  championId: number | null
+): Promise<string | null> {
+  if (!championId) return null;
+  const map = await getChampionIdMap(version);
+  return map.get(championId) ?? null;
 }
 
 export function itemIconUrl(version: string, itemId: number): string {

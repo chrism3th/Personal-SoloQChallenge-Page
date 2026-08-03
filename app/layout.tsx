@@ -3,6 +3,7 @@ import { Chakra_Petch, JetBrains_Mono, Manrope } from "next/font/google";
 import "./globals.css";
 import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
+import { MotionProvider } from "@/components/motion/MotionProvider";
 
 const fontDisplay = Chakra_Petch({
   variable: "--font-chakra-petch",
@@ -39,9 +40,11 @@ export default function RootLayout({
       className={`${fontDisplay.variable} ${fontMono.variable} ${fontBody.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col bg-obsidian-950 text-ink font-body">
-        <Header />
-        {children}
-        <Footer />
+        <MotionProvider>
+          <Header />
+          {children}
+          <Footer />
+        </MotionProvider>
       </body>
     </html>
   );

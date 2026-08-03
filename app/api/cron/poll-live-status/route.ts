@@ -1,16 +1,18 @@
 import { NextResponse } from "next/server";
+import { getCronSecret } from "@/lib/cron/secret";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { pollProfileLiveStatus } from "@/lib/riot/poll";
 
 export const maxDuration = 30;
 
-function isAuthorized(request: Request): boolean {
-  return request.headers.get("authorization") === `Bearer ${process.env.CRON_SECRET}`;
+async function isAuthorized(request: Request): Promise<boolean> {
+  const cronSecret = await getCronSecret();
+  return !!cronSecret && request.headers.get("authorization") === `Bearer ${cronSecret}`;
 }
 
 /** Cron cada ~3 min: una llamada Spectator por perfil, barata, para que el indicador "en vivo" se sienta fresco. */
 export async function GET(request: Request) {
-  if (!isAuthorized(request)) {
+  if (!(await isAuthorized(request))) {
     return NextResponse.json({ error: "No autorizado" }, { status: 401 });
   }
 

@@ -35,6 +35,7 @@ export interface Database {
           riot_api_key_updated_by: string | null;
           platform_routing: string;
           regional_routing: string;
+          cron_secret: string;
           created_at: string;
         };
         Insert: InsertOf<Database["public"]["Tables"]["app_settings"]["Row"], "riot_api_key">;

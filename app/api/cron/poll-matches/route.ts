@@ -1,12 +1,14 @@
 import { NextResponse } from "next/server";
+import { getCronSecret } from "@/lib/cron/secret";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { markRiotKeyValid } from "@/lib/riot/client";
 import { pollProfileMatches } from "@/lib/riot/poll";
 
 export const maxDuration = 60;
 
-function isAuthorized(request: Request): boolean {
-  return request.headers.get("authorization") === `Bearer ${process.env.CRON_SECRET}`;
+async function isAuthorized(request: Request): Promise<boolean> {
+  const cronSecret = await getCronSecret();
+  return !!cronSecret && request.headers.get("authorization") === `Bearer ${cronSecret}`;
 }
 
 /**
@@ -16,7 +18,7 @@ function isAuthorized(request: Request): boolean {
  * Cron en el header Authorization).
  */
 export async function GET(request: Request) {
-  if (!isAuthorized(request)) {
+  if (!(await isAuthorized(request))) {
     return NextResponse.json({ error: "No autorizado" }, { status: 401 });
   }
 

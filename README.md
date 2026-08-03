@@ -1,4 +1,4 @@
-# SoloQ Arena · LAS
+# SoloCumChallenge · LAS
 
 Ladder interno de SoloQ para un grupo cerrado de amigos, inspirado en el
 formato del SoloQ Challenge de ElmiilloR: ranking por LP/rango, perfiles con

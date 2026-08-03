@@ -29,7 +29,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
     <main className="mx-auto flex w-full max-w-5xl flex-1 flex-col gap-6 px-4 py-10">
       <div>
         <p className="font-mono text-xs uppercase tracking-widest text-accent">Panel admin</p>
-        <h1 className="font-display text-4xl uppercase tracking-wide">SoloQ Arena</h1>
+        <h1 className="font-display text-4xl uppercase tracking-wide">SoloCumChallenge</h1>
       </div>
 
       <nav className="flex flex-wrap gap-2 border-b border-obsidian-700 pb-4">

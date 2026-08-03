@@ -23,7 +23,7 @@ const fontBody = Manrope({
 });
 
 export const metadata: Metadata = {
-  title: "SoloQ Arena · LAS",
+  title: "SoloCumChallenge · LAS",
   description:
     "Ladder interno de SoloQ para el grupo — rango, LP y estadísticas en vivo.",
 };

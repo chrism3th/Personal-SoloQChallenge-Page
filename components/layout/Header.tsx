@@ -30,7 +30,7 @@ export async function Header() {
           href="/"
           className="focus-ring w-fit shrink-0 whitespace-nowrap font-display text-lg uppercase tracking-wide text-accent sm:text-2xl"
         >
-          SoloQ Arena
+          SoloCumChallenge
         </Link>
 
         <nav className="flex flex-wrap items-center gap-x-3 gap-y-1 font-body text-xs uppercase tracking-wide sm:gap-4 sm:text-sm">

@@ -50,7 +50,7 @@ function LoginForm() {
           Entrar
         </h1>
         <p className="mt-1 font-body text-sm text-ink-muted">
-          Accede al ladder de SoloQ Arena.
+          Accede al ladder de SoloCumChallenge.
         </p>
 
         <form onSubmit={handleSubmit} className="mt-6 flex flex-col gap-4">

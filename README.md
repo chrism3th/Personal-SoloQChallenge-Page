@@ -5,9 +5,9 @@ formato del SoloQ Challenge de ElmiilloR: ranking por LP/rango, perfiles con
 historial de rango y estadísticas de campeones, indicador de "en partida
 ahora", y temporadas/challenges configurables.
 
-Dirección visual: **"Broadcast de Arena"** — estética de transmisión de
-esports (fondo obsidiana, acentos dorados hextech, filas de scoreboard con
-cortes diagonales, colores reales de tier de LoL).
+Dirección visual: **"Neo Rank"** — fondo casi negro con tinte azulado,
+paneles de vidrio redondeados, acento violeta eléctrico + cian, y cada
+jugador con un halo del color real de su tier de LoL.
 
 ## Stack
 
@@ -41,8 +41,8 @@ cp .env.local.example .env.local
 # editar .env.local con los valores que imprimió `supabase start`
 ```
 
-Las migraciones (`supabase/migrations/0001_init.sql` y `0002_rls_policies.sql`)
-se aplican automáticamente al iniciar. Para reaplicarlas desde cero:
+Las migraciones (`supabase/migrations/`) se aplican automáticamente al
+iniciar. Para reaplicarlas desde cero:
 
 ```bash
 npx supabase db reset
@@ -119,3 +119,6 @@ crear invitaciones, ni auto-otorgarse permisos de admin, y que el cron
 3. Deployar en Vercel, configurando las env vars de `.env.local.example`
    más `CRON_SECRET`. `vercel.json` ya define los dos Cron Jobs.
 4. Entrar a `/admin/api-key` y pegar tu Riot API key.
+5. Crear una temporada en `/admin/temporadas` y marcar ahí mismo qué
+   jugadores participan — el ladder de una temporada solo muestra su
+   roster explícito, no todos los perfiles activos.
